@@ -2,6 +2,8 @@ const imageInput = document.getElementById('imageInput');
 const descriptionInput = document.getElementById('description');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const statusEl = document.getElementById('status');
+const analysisProgressEl = document.getElementById('analysisProgress');
+const analysisProgressFillEl = document.getElementById('analysisProgressFill');
 const reportEl = document.getElementById('report');
 const summaryEl = document.getElementById('summary');
 const canvas = document.getElementById('canvas');
@@ -56,8 +58,8 @@ const CATALOG_ALIAS_MAP = {
   nacho: 'Doritos', nachos: 'Doritos', tortilla: 'Doritos', tortilha: 'Doritos', triangulo: 'Doritos',
   fandangos: 'Fandangos', fandango: 'Fandangos', fandang: 'Fandangos', fanda: 'Fandangos', dango: 'Fandangos',
   ruffles: 'Ruffles', rufles: 'Ruffles', ruflles: 'Ruffles', ruflese: 'Ruffles',
-  rufly: 'Ruffles', rufiy: 'Ruffles', rufi: 'Ruffles', ruff: 'Ruffles', ruffs: 'Ruffles',
-  rvffles: 'Ruffles', rvfles: 'Ruffles', raffles: 'Ruffles', ruffes: 'Ruffles', ruffls: 'Ruffles', ruffy: 'Ruffles', rufffy: 'Ruffles',
+  rufly: 'Ruffles', rufiy: 'Ruffles',
+  rvffles: 'Ruffles', rvfles: 'Ruffles', raffles: 'Ruffles', ruffes: 'Ruffles', ruffls: 'Ruffles', rufffy: 'Ruffles',
   // Coca-Cola — cursive OCR noise variants.
   // AVOID short aliases that are substrings of common words (e.g. "coco" = coconut)
   cocacola: 'Coca-Cola', coca: 'Coca-Cola', cola: 'Coca-Cola',
@@ -98,8 +100,6 @@ const CATALOG_COLOR_HINTS = [
   // via color alone. OCR is the tiebreaker.
   { name: 'Coca-Cola',  hueMin: 340, hueMax: 360, satMin: 90, briMin: 30 },
   { name: 'Coca-Cola',  hueMin:   0, hueMax:  12, satMin: 90, briMin: 30 },
-  { name: 'Doritos',    hueMin: 340, hueMax: 360, satMin: 90, briMin: 30 },
-  { name: 'Doritos',    hueMin:   0, hueMax:  12, satMin: 90, briMin: 30 },
   // Doritos — yellow/black only (unambiguous)
   { name: 'Doritos',    hueMin:  35, hueMax:  65, satMin: 80, briMin: 80 },
   // Fanta — strictly orange (13–28°), does NOT overlap with Doritos yellow (35–65°)
@@ -125,7 +125,7 @@ const CATALOG_DETECTION_PROFILES = new Map();
 const DEFAULT_DETECTION_PROFILES = {
   'Doritos':   { colorSufficient: false, rules: [
     { requiresOCR: true,  requiresColor: false, minCount: 1 },
-    { requiresOCR: false, requiresColor: true,  minCount: 4 },
+    { requiresOCR: true,  requiresColor: true,  minCount: 2 },
   ]},
   'Fandangos': { colorSufficient: false, rules: [
     { requiresOCR: true,  requiresColor: false, minCount: 1 },
@@ -133,11 +133,11 @@ const DEFAULT_DETECTION_PROFILES = {
   ]},
   'Ruffles':   { colorSufficient: false, rules: [
     { requiresOCR: true,  requiresColor: false, minCount: 1 },
-    { requiresOCR: false, requiresColor: true,  minCount: 3 },
+    { requiresOCR: true,  requiresColor: true,  minCount: 2 },
   ]},
   'Coca-Cola': { colorSufficient: false, rules: [
+    { requiresOCR: true,  requiresColor: false, minCount: 1 },
     { requiresOCR: true,  requiresColor: true,  minCount: 1 },
-    { requiresOCR: true,  requiresColor: false, minCount: 3 },
   ]},
   'Fanta':     { colorSufficient: true,  rules: [
     { requiresOCR: false, requiresColor: true,  minCount: 2 },
@@ -246,9 +246,25 @@ function setStatus(message) {
   statusEl.textContent = message;
 }
 
+function setAnalysisProgress(percent, message) {
+  const safePercent = Math.max(0, Math.min(100, Math.round(percent)));
+  if (analysisProgressFillEl) {
+    analysisProgressFillEl.style.width = `${safePercent}%`;
+  }
+  if (analysisProgressEl) {
+    analysisProgressEl.setAttribute('aria-label', `Progresso da análise: ${safePercent}%`);
+  }
+  setStatus(`${safePercent}% - ${message}`);
+}
+
+function setAnalysisStep(step, totalSteps, percent, message) {
+  setAnalysisProgress(percent, `Etapa ${step}/${totalSteps} - ${message}`);
+}
+
 function resetOutput() {
   summaryEl.innerHTML = '';
   reportEl.textContent = 'Nenhuma análise executada.';
+  setAnalysisProgress(0, 'Aguardando análise...');
 }
 
 function drawImagePreview(img) {
@@ -475,7 +491,10 @@ function resolveBrandByAlias(token) {
     return null;
   }
 
-  const isCloseEnough = fuzzyCandidate.distance <= 2 || (fuzzyCandidate.alias.length >= 6 && fuzzyCandidate.ratio <= 0.28);
+  const aliasLength = fuzzyCandidate.alias.length;
+  const isCloseEnough = aliasLength >= 6
+    ? (fuzzyCandidate.distance <= 2 || fuzzyCandidate.ratio <= 0.28)
+    : (fuzzyCandidate.distance <= 1 && fuzzyCandidate.ratio <= 0.22);
   return isCloseEnough ? fuzzyCandidate.canonical : null;
 }
 
@@ -1493,9 +1512,11 @@ function buildSourceEvidenceSection(data) {
 
 function buildReport(data, expectedText, fileMetadata) {
   const brandEvidence = buildBrandEvidenceSummary(data.boxes);
-  const expectedReference = validateExpectedBrands(expectedText, data.counts);
-  const expectedBrands = expectedReference?.expectedBrands || [];
+  const expectedBrands = extractExpectedBrands(expectedText);
   const thresholded = applyBrandEvidenceThreshold(data, brandEvidence, expectedBrands);
+  const expectedReference = expectedBrands.length > 0
+    ? validateExpectedBrands(expectedText, thresholded.resolvedCounts)
+    : null;
   const usingDescriptionFocus = Boolean(expectedReference && expectedReference.expectedBrands.length > 0);
 
   const focusedBrands = usingDescriptionFocus
@@ -1511,8 +1532,9 @@ function buildReport(data, expectedText, fileMetadata) {
       return;
     }
 
-    const match = expectedReference.perBrand.find((item) => item.expected === brand);
-    focusedCounts[brand] = match ? match.count : 0;
+    const matchedDetectedBrand = Object.keys(thresholded.resolvedCounts)
+      .find((detectedBrand) => isSimilarBrandName(brand, detectedBrand));
+    focusedCounts[brand] = matchedDetectedBrand ? (thresholded.resolvedCounts[matchedDetectedBrand] || 0) : 0;
   });
 
   const countLines = focusedBrands.map((brand) => `- ${brand}: ${focusedCounts[brand] || 0}`);
@@ -1575,6 +1597,7 @@ function buildReport(data, expectedText, fileMetadata) {
 }
 
 async function analyzeShelf() {
+  const totalSteps = 10;
   if (!selectedImage) {
     return;
   }
@@ -1589,16 +1612,17 @@ async function analyzeShelf() {
   }
 
   analyzeBtn.disabled = true;
-  setStatus('Preparando imagem (compressão/redimensionamento)...');
+  setAnalysisStep(1, totalSteps, 0, 'Iniciando análise...');
+  setAnalysisStep(2, totalSteps, 5, 'Preparando imagem (compressão/redimensionamento)...');
   drawImagePreview(selectedImage);
 
   try {
     if (!objectModel) {
-      setStatus('Carregando modelo de detecção (COCO-SSD)...');
+      setAnalysisStep(3, totalSteps, 12, 'Carregando modelo de detecção (COCO-SSD)...');
       objectModel = await cocoSsd.load({ base: 'mobilenet_v2' });
     }
 
-    setStatus('Detectando produtos e embalagens...');
+    setAnalysisStep(4, totalSteps, 22, 'Detectando produtos e embalagens...');
     const detections = await objectModel.detect(canvas);
 
     const summarized = summarizeDetections(detections);
@@ -1607,31 +1631,40 @@ async function analyzeShelf() {
     const expectedBrandsForOCR = extractExpectedBrands(descriptionInput.value);
     const expectedBrandKeys = new Set(expectedBrandsForOCR.map((b) => normalizeBrandKey(b)));
 
-    setStatus('Executando OCR global...');
+    setAnalysisStep(5, totalSteps, 36, 'Executando OCR global...');
     const ocrFallback = await detectBrandsByOCR(expectedBrandKeys);
 
-    setStatus('Segmentando a gôndola para OCR regional e cor...');
+    setAnalysisStep(6, totalSteps, 52, 'Segmentando a gôndola para OCR regional e cor...');
     const heuristicFallback = await detectBrandsByShelfHeuristics(canvas, expectedBrandKeys);
 
-    setStatus('Validando assinaturas visuais por grade...');
+    setAnalysisStep(7, totalSteps, 66, 'Validando assinaturas visuais por grade...');
     const gridFallback = detectBrandsByGridSignature(canvas);
 
-    setStatus('Procurando itens em janelas menores da imagem...');
+    setAnalysisStep(8, totalSteps, 76, 'Procurando itens em janelas menores da imagem...');
     const denseWindowFallback = detectBrandsByDenseWindows(canvas);
 
-    setStatus('Consolidando contagem, share e layout...');
+    setAnalysisStep(9, totalSteps, 86, 'Consolidando contagem, share e layout...');
     const finalSummary = mergeAnalysis(summarized, ocrFallback, heuristicFallback, gridFallback, denseWindowFallback);
 
-    drawImagePreview(selectedImage);
-    drawBoxes(finalSummary.boxes);
+    const brandEvidence = buildBrandEvidenceSummary(finalSummary.boxes);
+    const thresholded = applyBrandEvidenceThreshold(finalSummary, brandEvidence, expectedBrandsForOCR);
+    const approvedBrands = new Set(Object.keys(thresholded.resolvedCounts));
+    const filteredBoxes = deduplicateBoxes(
+      finalSummary.boxes.filter((box) => approvedBrands.has(box.productName)),
+    );
+    const filteredSummary = recalculateMetrics(thresholded.resolvedCounts, filteredBoxes);
 
-    const detectedProducts = Object.keys(finalSummary.counts);
+    drawImagePreview(selectedImage);
+    drawBoxes(filteredSummary.boxes);
+
+    setAnalysisStep(9, totalSteps, 93, 'Calculando compatibilidade e confiança...');
+    const detectedProducts = Object.keys(filteredSummary.counts);
     const compatibility = await semanticCompatibility(descriptionInput.value, detectedProducts);
-    const layout = analyzeLayout(finalSummary.boxes);
+    const layout = analyzeLayout(filteredSummary.boxes);
     const confidence = blendMultipleConfidences([summarized, ocrFallback, heuristicFallback, gridFallback, denseWindowFallback]);
 
     const result = {
-      ...finalSummary,
+      ...filteredSummary,
       compatibility,
       layout,
       confidence,
@@ -1639,10 +1672,11 @@ async function analyzeShelf() {
 
     renderSummary(result);
     reportEl.textContent = buildReport(result, descriptionInput.value.trim(), selectedFileMetadata);
-    setStatus('Análise concluída.');
+    setAnalysisStep(10, totalSteps, 100, 'Análise concluída.');
   } catch (error) {
     console.error(error);
     setStatus(`Erro na análise: ${error.message}`);
+    setAnalysisProgress(0, 'Falha na análise.');
   } finally {
     updateAnalyzeBtnState();
   }

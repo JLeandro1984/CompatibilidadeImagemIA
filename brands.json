@@ -28,15 +28,13 @@
         { "type": "startsWith", "value": "tort",   "minLength": 5 }
       ],
       "colorSignatures": [
-        { "hueMin": 340, "hueMax": 360, "satMin": 90, "briMin": 30 },
-        { "hueMin":   0, "hueMax":  12, "satMin": 90, "briMin": 30 },
         { "hueMin":  35, "hueMax":  65, "satMin": 80, "briMin": 80 }
       ],
       "detectionProfile": {
         "colorSufficient": false,
         "rules": [
           { "description": "OCR confirma o nome",      "requiresOCR": true,  "requiresColor": false, "minCount": 1 },
-          { "description": "Alta repetição com cor",   "requiresOCR": false, "requiresColor": true,  "minCount": 4 }
+          { "description": "OCR + cor em casos de baixa leitura", "requiresOCR": true, "requiresColor": true, "minCount": 2 }
         ]
       }
     },
@@ -74,8 +72,8 @@
       "category": "snack",
       "aliases": [
         "ruffles", "rufles", "ruflles", "ruflese",
-        "rufly", "rufiy", "rufi", "ruff", "ruffs",
-        "rvffles", "rvfles", "raffles", "ruffes", "ruffls", "ruffy", "rufffy"
+        "rufly", "rufiy",
+        "rvffles", "rvfles", "raffles", "ruffes", "ruffls", "rufffy"
       ],
       "ocrPatterns": [
         { "type": "startsWith", "value": "ruf", "minLength": 3 },
@@ -88,8 +86,8 @@
       "detectionProfile": {
         "colorSufficient": false,
         "rules": [
-          { "description": "OCR confirma o nome",            "requiresOCR": true,  "requiresColor": false, "minCount": 1 },
-          { "description": "Alta repetição com cor azul/amarelo", "requiresOCR": false, "requiresColor": true, "minCount": 3 }
+          { "description": "OCR confirma o nome", "requiresOCR": true, "requiresColor": false, "minCount": 1 },
+          { "description": "OCR + cor azul/amarelo em caso limítrofe", "requiresOCR": true, "requiresColor": true, "minCount": 2 }
         ]
       }
     },
@@ -118,6 +116,7 @@
       "detectionProfile": {
         "colorSufficient": false,
         "rules": [
+          { "description": "OCR confirma mesmo sem cor", "requiresOCR": true, "requiresColor": false, "minCount": 1 },
           { "description": "OCR + cor vermelha — Doritos também é vermelho, logo cor isolada não basta", "requiresOCR": true, "requiresColor": true,  "minCount": 1 },
           { "description": "OCR isolado com alta repetição",                                              "requiresOCR": true, "requiresColor": false, "minCount": 3 }
         ]
