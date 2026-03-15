@@ -1,0 +1,203 @@
+{
+  "version": "1.1",
+  "description": "Catálogo de marcas ShelfVision. Para adicionar uma marca edite apenas este arquivo — zero alterações no código.",
+  "schema": {
+    "id":               "string — identificador único (minúsculas, sem espaços)",
+    "canonical":        "string — nome de exibição oficial",
+    "category":         "snack | beverage | dairy | hygiene | cleaning | other",
+    "aliases":          "string[] — variações OCR normalizadas (minúsculas, sem acentos/pontuação)",
+    "ocrPatterns":      "{ type: contains|startsWith|endsWith, value, [minLength], [startsWithAny] }[]",
+    "colorSignatures":  "{ hueMin, hueMax (0-360), satMin, briMin (0-255) }[]",
+    "detectionProfile": "{ colorSufficient: bool, rules: [{ requiresOCR, requiresColor, minCount }] }"
+  },
+
+  "brands": [
+    {
+      "id": "doritos",
+      "canonical": "Doritos",
+      "category": "snack",
+      "aliases": [
+        "doritos", "dorito",
+        "deitos", "desitos", "deritos", "doriitos", "dorltos", "doritoss", "dorlitos", "oritos",
+        "nacho", "nachos", "tortilla", "tortilha", "triangulo"
+      ],
+      "ocrPatterns": [
+        { "type": "contains",   "value": "ritos",  "startsWithAny": ["d", "o"] },
+        { "type": "endsWith",   "value": "itos",   "startsWithAny": ["d", "o"] },
+        { "type": "startsWith", "value": "nac",    "minLength": 4 },
+        { "type": "startsWith", "value": "tort",   "minLength": 5 }
+      ],
+      "colorSignatures": [
+        { "hueMin": 340, "hueMax": 360, "satMin": 90, "briMin": 30 },
+        { "hueMin":   0, "hueMax":  12, "satMin": 90, "briMin": 30 },
+        { "hueMin":  35, "hueMax":  65, "satMin": 80, "briMin": 80 }
+      ],
+      "detectionProfile": {
+        "colorSufficient": false,
+        "rules": [
+          { "description": "OCR confirma o nome",      "requiresOCR": true,  "requiresColor": false, "minCount": 1 },
+          { "description": "Alta repetição com cor",   "requiresOCR": false, "requiresColor": true,  "minCount": 4 }
+        ]
+      }
+    },
+
+    {
+      "id": "fandangos",
+      "canonical": "Fandangos",
+      "category": "snack",
+      "aliases": [
+        "fandangos", "fandango", "fandang", "fanda", "dango"
+      ],
+      "ocrPatterns": [
+        { "type": "contains", "value": "fandang" },
+        { "type": "contains", "value": "ndangos" },
+        { "type": "contains", "value": "andango" },
+        { "type": "contains", "value": "fanda"   },
+        { "type": "contains", "value": "dango"   }
+      ],
+      "colorSignatures": [
+        { "hueMin":  75, "hueMax": 145, "satMin": 60, "briMin": 50 },
+        { "hueMin":  35, "hueMax":  75, "satMin": 80, "briMin": 80 }
+      ],
+      "detectionProfile": {
+        "colorSufficient": false,
+        "rules": [
+          { "description": "OCR confirma o nome",               "requiresOCR": true,  "requiresColor": false, "minCount": 1 },
+          { "description": "Alta repetição com cor compatível", "requiresOCR": false, "requiresColor": true,  "minCount": 3 }
+        ]
+      }
+    },
+
+    {
+      "id": "ruffles",
+      "canonical": "Ruffles",
+      "category": "snack",
+      "aliases": [
+        "ruffles", "rufles", "ruflles", "ruflese",
+        "rufly", "rufiy", "rufi", "ruff", "ruffs",
+        "rvffles", "rvfles", "raffles", "ruffes", "ruffls", "ruffy", "rufffy"
+      ],
+      "ocrPatterns": [
+        { "type": "startsWith", "value": "ruf", "minLength": 3 },
+        { "type": "startsWith", "value": "rvf", "minLength": 3 }
+      ],
+      "colorSignatures": [
+        { "hueMin": 200, "hueMax": 260, "satMin": 60, "briMin": 50 },
+        { "hueMin":  35, "hueMax":  65, "satMin": 80, "briMin": 80 }
+      ],
+      "detectionProfile": {
+        "colorSufficient": false,
+        "rules": [
+          { "description": "OCR confirma o nome",            "requiresOCR": true,  "requiresColor": false, "minCount": 1 },
+          { "description": "Alta repetição com cor azul/amarelo", "requiresOCR": false, "requiresColor": true, "minCount": 3 }
+        ]
+      }
+    },
+
+    {
+      "id": "coca-cola",
+      "canonical": "Coca-Cola",
+      "category": "beverage",
+      "aliases": [
+        "cocacola", "coca", "cola",
+        "cocacol", "cocacols", "cocacole",
+        "cocaola", "coaola",
+        "cokacola", "koka", "kola",
+        "cokas", "coka",
+        "ccola", "cooca", "cocaa",
+        "gocacola"
+      ],
+      "ocrPatterns": [
+        { "type": "contains", "value": "coca", "minLength": 5 },
+        { "type": "contains", "value": "coke", "minLength": 4 }
+      ],
+      "colorSignatures": [
+        { "hueMin": 340, "hueMax": 360, "satMin": 90, "briMin": 30 },
+        { "hueMin":   0, "hueMax":  12, "satMin": 90, "briMin": 30 }
+      ],
+      "detectionProfile": {
+        "colorSufficient": false,
+        "rules": [
+          { "description": "OCR + cor vermelha — Doritos também é vermelho, logo cor isolada não basta", "requiresOCR": true, "requiresColor": true,  "minCount": 1 },
+          { "description": "OCR isolado com alta repetição",                                              "requiresOCR": true, "requiresColor": false, "minCount": 3 }
+        ]
+      }
+    },
+
+    {
+      "id": "fanta",
+      "canonical": "Fanta",
+      "category": "beverage",
+      "aliases": ["fanta"],
+      "ocrPatterns": [
+        { "type": "contains", "value": "fanta" }
+      ],
+      "colorSignatures": [
+        { "hueMin": 13, "hueMax": 28, "satMin": 90, "briMin": 80 }
+      ],
+      "detectionProfile": {
+        "colorSufficient": true,
+        "rules": [
+          { "description": "Laranja Fanta é única — cor sozinha com repetição basta", "requiresOCR": false, "requiresColor": true,  "minCount": 2 },
+          { "description": "OCR confirma sem exigir cor",                              "requiresOCR": true,  "requiresColor": false, "minCount": 1 }
+        ]
+      }
+    },
+
+    {
+      "id": "sprite",
+      "canonical": "Sprite",
+      "category": "beverage",
+      "aliases": ["sprite", "sprit", "spte", "spnte", "sprie"],
+      "ocrPatterns": [
+        { "type": "contains",   "value": "sprite" },
+        { "type": "startsWith", "value": "spri",  "minLength": 5 },
+        { "type": "startsWith", "value": "sprt",  "minLength": 4 }
+      ],
+      "colorSignatures": [
+        { "hueMin": 80, "hueMax": 160, "satMin": 60, "briMin": 50 }
+      ],
+      "detectionProfile": {
+        "colorSufficient": true,
+        "rules": [
+          { "description": "Verde Sprite com repetição", "requiresOCR": false, "requiresColor": true,  "minCount": 2 },
+          { "description": "OCR confirma",               "requiresOCR": true,  "requiresColor": false, "minCount": 1 }
+        ]
+      }
+    },
+
+    {
+      "id": "pepsi",
+      "canonical": "Pepsi",
+      "category": "beverage",
+      "aliases": ["pepsi"],
+      "ocrPatterns": [],
+      "colorSignatures": [
+        { "hueMin": 200, "hueMax": 255, "satMin": 80, "briMin": 40 }
+      ],
+      "detectionProfile": {
+        "colorSufficient": false,
+        "rules": [
+          { "description": "OCR confirma — azul conflita com Ruffles", "requiresOCR": true, "requiresColor": false, "minCount": 1 }
+        ]
+      }
+    },
+
+    {
+      "id": "guarana",
+      "canonical": "Guaraná",
+      "category": "beverage",
+      "aliases": ["guarana"],
+      "ocrPatterns": [],
+      "colorSignatures": [
+        { "hueMin": 75, "hueMax": 145, "satMin": 70, "briMin": 40 }
+      ],
+      "detectionProfile": {
+        "colorSufficient": false,
+        "rules": [
+          { "description": "OCR confirma o nome", "requiresOCR": true, "requiresColor": false, "minCount": 1 }
+        ]
+      }
+    }
+  ]
+}

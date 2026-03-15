@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShelfVision MVP</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder@1.3.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <header class="panel">
+        <h1>ShelfVision MVP</h1>
+        <p>Análise de gôndola com IA local/híbrida no navegador.</p>
+      </header>
+
+      <section class="panel controls">
+        <label class="dropzone" id="dropzone">
+          <input type="file" id="imageInput" accept="image/*" />
+          <span>Arraste uma imagem aqui ou clique para selecionar</span>
+        </label>
+
+        <label for="description">
+          Marcas esperadas na prateleira
+          <span class="required-mark">*</span>
+        </label>
+        <textarea
+          id="description"
+          rows="4"
+          required
+          placeholder="Ex.: Doritos, Fandangos, Ruffles"
+        ></textarea>
+        <p class="field-hint">Informe as marcas separadas por vírgula. A análise usa esses nomes como referência.</p>
+        <p class="field-error" id="descriptionError" hidden>Informe ao menos uma marca esperada antes de analisar.</p>
+
+        <button id="analyzeBtn" disabled>Analisar prateleira</button>
+        <p class="status" id="status">Carregue uma imagem para começar.</p>
+      </section>
+
+      <section class="panel preview-grid">
+        <div>
+          <h2>Preview</h2>
+          <div class="canvas-wrap">
+            <canvas id="canvas"></canvas>
+          </div>
+        </div>
+
+        <div>
+          <h2>Resumo</h2>
+          <ul class="summary" id="summary"></ul>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Relatório automático</h2>
+        <pre id="report">Nenhuma análise executada.</pre>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js?v=29"></script>
+  </body>
+</html>
